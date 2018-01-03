@@ -1,0 +1,300 @@
+---
+title: "World Happiness Analysis"
+author: "Danlu Pan"
+date: "December 4, 2017"
+runtime: shiny
+output: slidy_presentation
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+***
+<br>
+<br>
+<center>Catalogue<center>
+<br>
+<br>
+<center>**Overview**<br />
+Metrics relation<br />
+Economy & Ranking<br /> 
+World Happiness Map<br />
+<br>
+**Dig into Estern Asia**<br />
+Metrixs in Estern Asia<br />
+Health condition in Estern Asia<center>
+
+
+***
+
+
+```{r echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+##Three packages involved
+library(ggplot2)
+library(dplyr)
+library(corrplot)
+```
+
+
+```{r echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+# read world happiness data
+world_happiness1 <- read.csv("2015-4.csv")
+```
+
+```{r echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+str(world_happiness1)
+```
+
+
+```{r echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+
+#clean data frame
+world_happiness<-select(world_happiness1,
+                  year,
+                   Country, 
+                   Region,
+                   Happiness=Happiness.Score,
+                   Rank=Happiness.Rank,
+                   Economy=Economy..GDP.per.Capita.,
+                   Family,
+                   Health=Health..Life.Expectancy.,
+                   Freedom,
+                   Trust=Trust..Government.Corruption.,
+                   Generosity,
+                   Dystopia.Residual)
+```
+
+
+```{r  echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+#Check for missing values
+sapply(world_happiness, function(x) sum(is.na(x)))
+## There is no missing data. 
+```
+```{r echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+#Check the class of each matrix
+sapply(world_happiness, function(x) class(x))
+```
+
+```{r echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+
+#boxplot(world_happiness$Happiness,data=world_happiness, xlab="boxplot of Happiness")
+#boxplot(world_happiness$Economy,data=world_happiness, xlab="boxplot of Economy")
+#boxplot(world_happiness$Family,data=world_happiness, xlab="boxplot of Family")
+#boxplot(world_happiness$Family,data=world_happiness, xlab="boxplot of Freedom")
+#boxplot(world_happiness$Health,data=world_happiness, xlab="boxplot of Health")
+#boxplot(world_happiness$Trust,data=world_happiness, xlab="boxplot of Trust")
+#boxplot(world_happiness$Generosity,data=world_happiness, xlab="boxplot of Generosity")
+#boxplot(world_happiness$Dystopia.Residual,data=world_happiness, xlab="boxplot of Dystopia.Residual")
+#A few outliers are found, 
+ #  in order to maintain whole data  information,
+ #  decided to keep them 
+
+```
+
+<br>
+<br>
+<center>Overview<br />
+<br>
+<br>
+[1] Metrics relation
+```{r echo=FALSE, cache=FALSE,results = 'hide'}
+#find all numeric variables
+world_happiness2<-select(world_happiness,-year,-Rank)
+isnumeric <-sapply(world_happiness2, function(x) is.numeric(x))
+```
+```{r echo=FALSE,warning=FALSE,fig.width=7,fig.height=7,fig.align="center"}
+#create a correlation plot
+cor_happiness<-cor(world_happiness2[,isnumeric])
+colnames(cor_happiness)<-c("H","E","F","H","F","T","G","D")
+corrplot(cor_happiness, align="c",method="color",tl.pos = "lt", tl.col = "black", tl.offset=1, tl.srt = 0)
+```
+
+
+***
+<br>
+<br>
+
+```{r echo=FALSE, cache=FALSE,results = 'hide'}
+# convert data to a percentage data frame
+percent_factor <-world_happiness %>%
+  group_by(year)%>%
+  summarize(percent_Economy=sum(Economy)/sum(Happiness)*100,
+            percent_Family=sum(Family)/sum(Happiness)*100,
+            percent_Health=sum(Health)/sum(Happiness)*100,
+            percent_Freedom=sum(Freedom)/sum(Happiness)*100,
+            percent_Trust=sum(Trust)/sum(Happiness)*100,
+            percent_Generosity=sum(Generosity)/sum(Happiness)*100,
+            percent_Dystopia.Residual=sum(Dystopia.Residual)/sum(Happiness)*100)
+```
+
+```{r echo=FALSE,cache=FALSE,results = 'hide'}
+#create a table for pie chart
+percent <- data_frame(Factor=c("Economy","family","Health", "Freedom","Trust", "Generosity","Dystopia.Residual"),
+           Percent=c(15.74,18.43,11.72,7.97,2.67,4.41,39.06))
+```
+```{r echo=FALSE,fig.width=6,fig.height=4,fig.align="center"}
+# plot a pie chart to show contribution of each factor to world happiness
+pieplot<- ggplot(percent, aes(x ="",y=Percent,fill=Factor))+geom_bar(stat = "identity")+coord_polar(theta="y")+scale_fill_brewer(palette="Blues")
+#add labels and titles
+pieplot + labs(y="Percent %", title="Metrix contributions to world happniess")+theme(plot.title = element_text(face="bold",hjust=0.5))+geom_text(aes(label=Percent),col="black",position=position_stack(vjust = 0.6))
+```
+
+***
+<br>
+<br>
+[2]Focus on relation between happiness ranking with **economy** condition worldwide 
+```{r echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+# create table related to the world happiness data of economy
+Economy <-select(world_happiness,Economy,Country,Rank,Economy,year)
+Economy <- arrange(Economy,Rank)
+```
+
+```{r echo=FALSE,fig.width=6,fig.height=4,fig.align="center"}
+# plot the relation between happiness ranking with economy condition by year
+plot1<- ggplot(Economy,aes(x=Rank,y=Economy,fill=Economy,col=factor(year)))+geom_line()+facet_wrap(~year)
+# add titles an labels
+plot1+labs(title="Economy & Ranking worldwilde",color="year")+theme(plot.title = element_text(face="bold",hjust=0.5))
+
+```
+
+* We can tell that there is a positive trend related with economy and happiness ranking. 
+
+***
+<br>
+<br>
+[3]focus on showing a **map of world happiness** all ove the world 
+```{r echo=FALSE}
+shinyApp(
+  ui = fluidPage(    
+  
+  # Give the page a title
+  titlePanel("Map of world happiness"),
+  
+  # Generate a row with a sidebar
+  sidebarLayout(      
+    
+    # Define the sidebar with one input
+    sidebarPanel(
+      selectInput("year", "year:", 
+                  choices=c("2015","2016","2017")),
+      hr(),
+      helpText("year:2015-2017")
+    ),
+    
+    # Create a spot for the map
+    mainPanel(
+      plotOutput("conditionPlot")  
+    ))),
+  
+server = function(input, output) {
+  
+  # Fill in the spot we created for a plot
+  output$conditionPlot <- renderPlot({
+    map_data <- world_happiness %>%
+    filter(year==input$year)%>%
+    select(-year,-Region)
+    # use map_data to convert data into maps
+    map_world <- map_data(map="world")
+
+    # since values in Country and Region not match, try to merge them
+    map_world$Country <- map_world$region
+    map_world_after <- merge(map_world, map_data, by="Country", all.x=TRUE)
+
+    # reorder world map data
+    map_world_after <- map_world_after[order(map_world_after$group, map_world_after$order), ]
+    # create world map of happiness
+Happiness.plot <- ggplot() + geom_map(data=map_world_after, aes(map_id=region, x=long,  y=lat,fill=Happiness),map=map_world_after)
+
+# add color, adjust coordinate and add ttile & theme 
+Happiness.plot <- Happiness.plot + scale_fill_gradient(low = "white", high = "blue", guide = "colourbar")+coord_equal()+labs(x="Latitude",y="Longitude")+ggtitle(label = "World Happiness Map 2016")+theme(plot.title = element_text(face="bold",hjust = 0.5)) 
+Happiness.plot
+  })
+  },
+  options = list(height = 600,width=900)
+)
+```
+
+***
+<br>
+<br>
+<center>**Focus on happiness scores in Eastern Asina**<center>
+```{r echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+# filter rows of Eastern Asia
+Asia <-filter(world_happiness,Region=="Eastern Asia")
+```
+```{r echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+# create a table related to the world happiness data of Eastern Asia
+by_year_country<-Asia %>%
+  group_by(year,Country) %>%
+  summarize(Rank,Economy, Health)
+```
+```{r echo=FALSE, cache=FALSE,results = 'hide',message=FALSE,warning=FALSE}
+# range dataframe to prepare for shiny app
+Asia2015 <-filter(Asia, year==2015)
+condition2015 <- as.matrix(select(Asia2015, -year,-Region,-Country,-Rank))
+rownames(condition2015) <- Asia2015$Country
+```
+
+[1]To show value change of each metrix in different part of Eastern Asia  
+
+```{r echo=FALSE}
+shinyApp(
+  ui = fluidPage(    
+  
+  # Give the page a title
+  titlePanel("Condition of Eastern Asia in 2015"),
+  
+  # Generate a row with a sidebar
+  sidebarLayout(      
+    
+    # Define the sidebar with one input
+    sidebarPanel(
+      selectInput("Condition", "Condition:", 
+                  choices=colnames(condition2015)),
+      hr(),
+      helpText("different metrixs to evaluate world happiness in Eastern Asia, 2015")
+    ),
+    
+    # Create a spot for the barplot
+    mainPanel(
+      plotOutput("conditionPlot")  
+    ))),
+  
+server = function(input, output) {
+  
+  # Fill in the spot we created for a plot
+  output$conditionPlot <- renderPlot({
+    
+    # Render a barplot
+    barplot(condition2015[,input$Condition], 
+            main=input$Condition,
+            col=c("indianred", "orange", "gold","skyblue4","light blue","blue"),
+            ylab="condition name",
+            xlab="Year 2015")
+  })
+  },
+  options = list(height = 600,width=900)
+)
+```
+
+***
+
+<br>
+<br>
+<br>
+[2]Focus on relation between happiness ranking with **health** in **Eastern Asia**
+
+```{r echo=FALSE,cache=FALSE,warning=FALSE,fig.width=10,fig.height=4,fig.align="center"}
+
+#plot the relation between happiness ranking with health condition by year
+by_year_country <- arrange(by_year_country,Rank)
+healthplot <- ggplot(by_year_country,aes(x=reorder(Country,Rank),y=Rank,fill=Health))+labs(x="Countries in Easatern Asia")+geom_histogram(stat = "identity")+facet_wrap(~year)
+# add titles and labels
+healthplot+labs(title="Health condition & Ranking in Estern Asia")+theme(plot.title = element_text(face="bold",hjust=0.5))
+```
+
+* We can tell that health condition is not exactly positively related  to happiness ranking.
+
+***
